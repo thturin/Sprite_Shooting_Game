@@ -1,0 +1,15 @@
+
+Sprites in pygame
+a class that combines a surface, a rect, and other features likes animations or sounds
+
+
+Drawing in pygame
+-display surface object is the only thing displayed
+-additional surfaces can be added but they need to be attached to the display surface
+-surfaces cannot be moved
+-you need to put a rect around them first and that 'rect' can't be moved
+
+
+Sprite Class
+Combines a surface and a rect
+Target multiple sprites via groups of sprites

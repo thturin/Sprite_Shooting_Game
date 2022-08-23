@@ -1,78 +1,65 @@
-import pygame, sys, time
+import pygame, sys, time, random
 from os import walk
+from sprites import *
 from random import randint
-
-class Crosshair(pygame.sprite.Sprite):
-    def __init__(self, picture_path, group):
-        super().__init__()
-        #self.image = pygame.Surface([width,height]) #emtpy surface
-        #self.image.fill(color)
-        self.image = pygame.image.load(picture_path)
-        self.rect = self.image.get_rect() #takes the image and draws an rectangle around it
-        #self.rect.center = (pos_x,pos_y)
-
-        group.add(self)
-    def update(self): #update() is predefined in the original sprite class
-        self.rect.center = pygame.mouse.get_pos() #cross hair follows mouse
-
-class Rifle(Crosshair):
-    def update(self):
-        pos = [pygame.mouse.get_pos()[0]+80,pygame.mouse.get_pos()[1]+180]
-        self.rect.center = pos
+from settings import *
 
 
-class Target(pygame.sprite.Sprite):
-    def __init__(self,picture_path, pos_x,pos_y,group):
-        super().__init__()
-        self.image = pygame.image.load(picture_path)
-        self.rect = self.image.get_rect()
-        self.rect.center = [pos_x,pos_y]
-        self.direction = pygame.math.Vector2(1,1)
-        self.speed = 200
-        group.add(self)
-
-    def update(self,dt):
-        if self.direction.magnitude()!=0:
-            self.direciton = self.direction.normalize()
-
-        self.rect.centerx += self.direction.x * self.speed * dt
-
-        if self.rect.right > screen_width:
-            self.rect.centerx=0
-        #self.rect.centery += self.direction.y * self.speed * dt
-
-
+#lists
+duck_path_list = []
+dead_ducks_list = []
+stick_list = []
+target_path_list = []
+target_coords = [[85,286],[219,114],[293,266],[500,100],[475,277],[665,285],[772,111],[957,277],[1087,110],[1177,274]]
+shot_path_list = []
 #setup
 pygame.init()
 clock = pygame.time.Clock()
 
 #game screen
-screen_width = 1280
-screen_height = 820
 screen = pygame.display.set_mode((screen_width,screen_height))
-background = pygame.image.load('graphics/stall/bg_blue-modified.png')
+background = pygame.image.load('graphics/stall/bg_wood-modified.png')
 pygame.mouse.set_visible(False)
 
-#crosshair
+#sprite groups
 crosshair_group = pygame.sprite.Group()
 target_group = pygame.sprite.Group()
-targets=[]
+shot_group = pygame.sprite.Group()
+obstacle_group = pygame.sprite.Group()
 
 i=0
-j=0
-for _,_,img_files in walk('graphics/Objects/'):
+#obstacles
+grass2= Obstacle('graphics/Stall/grass2-modified.png',screen_width/2,screen_height-300,obstacle_group)
+grass2.speed=150
+for _,_,img_files in walk('graphics/Duck/'):
     for image in img_files:
         if 'duck' in image:
-            target = Target('graphics/Objects/'+image,i*200,100,target_group)
-            i+=1
-            #targets.append(target)
-        if 'target' in image:
-            target = Target('graphics/Objects/' + image, j*200, 300,target_group)
-            j+=1
+            duck_path_list.append('graphics/Duck/'+image)
+            duck = Duck('graphics/Duck/'+image,i*200,screen_height/2,target_group)
+            stick = Stick('graphics/Duck/stick_metal.png',i*200,duck.rect.bottom+60,obstacle_group, duck,target_group)
+        i+=1
+
+for _,_,img_files in walk('graphics/Bullseye/'):
+    for image in img_files:
+        target_path_list.append('graphics/Bullseye/'+image)
+
+for index in range (len(target_coords)):
+    Target(choice(target_path_list),target_coords[index][0],target_coords[index][1],target_group)
+
+for _,_,img_files in walk('graphics/Shot/'):
+    for image in img_files:
+        shot_path_list.append('graphics/Shot/'+image)
+
+grass1 = Obstacle('graphics/Stall/grass1-modified.png',screen_width/2,screen_height-200,obstacle_group)
+water2 = Obstacle('graphics/Stall/water2-modified.png',screen_width/2,screen_height-100,obstacle_group)
+water2.speed = 200
+water1 = Obstacle('graphics/Stall/water1-modified.png',screen_width/2,screen_height,obstacle_group)
 
 crosshair = Crosshair('graphics/HUD/crosshair_white_large.png',crosshair_group)
 rifle = Rifle('graphics/Objects/rifle.png',crosshair_group)
 
+
+#MAIN
 last_time = time.time()
 while True:
     #delta time
@@ -85,14 +72,23 @@ while True:
             sys.exit()
         if event.type == pygame.MOUSEBUTTONDOWN:
             #what happens when you click mouse button
-            pass
+            for target in target_group:
+                if pygame.sprite.collide_rect(target,crosshair):
+                    Shot(choice(shot_path_list),pygame.mouse.get_pos()[0],pygame.mouse.get_pos()[1],shot_group,target)
+                    #target.kill()
+
+
 
     pygame.display.flip()
     screen.blit(background,(0,0))
-    target_group.draw(screen)
 
+    obstacle_group.draw(screen)
+    target_group.draw(screen)
+    shot_group.draw(screen)
     crosshair_group.draw(screen)
 
     crosshair_group.update() #will update all sprites in group simultaneously
     target_group.update(dt)
+    shot_group.update()
+    obstacle_group.update(dt)
     clock.tick(60)
